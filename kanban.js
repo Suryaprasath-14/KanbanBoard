@@ -54,8 +54,8 @@ modalCont.addEventListener('keydown',event =>{
     {
         //ticketCreate
         let ticketDesc = textAreaCont.value
-        let tcktId = shortid()
-        createTicket(modalPriorityCol, tcktId, ticketDesc  )
+        //let tcktId = shortid()
+        createTicket(modalPriorityCol, ticketDesc  )
         //close modal
         modalCont.style.display='none'
         addTaskFlag=!addTaskFlag
@@ -65,19 +65,21 @@ modalCont.addEventListener('keydown',event =>{
 
 })
 
-function createTicket(ticketCol, ticketId, ticketDescription)
+function createTicket(ticketCol, ticketDescription, ticketId)
 {
+    let id = ticketId || shortid()
+
     let ticketCont = document.createElement('div')
 
     ticketCont.classList.add('ticket-cont');
 
-    ticketCont.innerHTML = `<div class="ticket-col ${ticketCol}"></div><div class="ticket-id">${ticketId}</div><div class="task-area">${ticketDescription}</div><div class="ticket-lock"><i class="fa-solid fa-lock"></i></div>`
+    ticketCont.innerHTML = `<div class="ticket-col ${ticketCol}"></div><div class="ticket-id">${id}</div><div class="task-area">${ticketDescription}</div><div class="ticket-lock"><i class="fa-solid fa-lock"></i></div>`
 
     mainCont.appendChild(ticketCont)
 
     let ticketMetaData = {
         ticketCol,
-        ticketId,
+        ticketId: id,
         ticketDescription
     }
     //both are same way of object creation
@@ -87,8 +89,15 @@ function createTicket(ticketCol, ticketId, ticketDescription)
     //        "ticketDescription": ticketDescription
     // }
 
-    ticketArray.push(ticketMetaData)
-    // console.log(ticketArray)
+    // if freshly created ticket
+    // then only push to ticketArray
+    // otherwise, dont push (case of ticket recreation)
+
+    if(!ticketId){
+        ticketArray.push(ticketMetaData) 
+        localStorage.setItem('tickets', JSON.stringify(ticketArray))  
+    }
+         
 
     handleRemove(ticketCont)
 
@@ -119,7 +128,19 @@ function handleRemove(ticket){
     ticket.addEventListener('click',event =>{
         if(removeTaskFlag==true)
         {
-            //removeTicket
+            // remove ticket - ticketArray
+            let ticketID = ticket.children[1].innerText
+            let ticketIndex = ticketArray.findIndex(t => {
+                return t.ticketId == ticketID
+            })
+            
+            ticketArray.splice(ticketIndex, 1)
+            
+
+            //update local storage
+            localStorage.setItem('tickets', JSON.stringify(ticketArray))
+
+            // remove ticket - ui removal
             ticket.remove()
         }
     })
@@ -160,7 +181,8 @@ function handleLock(ticket){
             tckt.ticketDescription = taskArea.innerText
            }
         })
-        //console.log(ticketArray)
+        //update local storage
+        localStorage.setItem('tickets', JSON.stringify(ticketArray))
         }
 
         })
@@ -197,7 +219,8 @@ function handleColor(ticket)
             }
         })
 
-        //console.log(ticketArray)
+        //update local storage
+        localStorage.setItem('tickets', JSON.stringify(ticketArray))
 
     })
 }
@@ -224,14 +247,14 @@ toolboxColors.forEach(toolboxColor =>{
 
         //recreate tickets within filtered array
         filteredTickets.forEach(filteredTicket => {
-            createTicket(filteredTicket.ticketCol, filteredTicket.ticketId, filteredTicket.ticketDescription)
+            createTicket(filteredTicket.ticketCol, filteredTicket.ticketDescription, filteredTicket.ticketId)
 
         })
 
     })
 
     toolboxColor.addEventListener('dblclick', () => {
-        console.log('Double click')
+        //console.log('Double click')
         // remove all the tickets from the DOM
         let allTickets = document.querySelectorAll('.ticket-cont')
 
@@ -241,8 +264,17 @@ toolboxColors.forEach(toolboxColor =>{
 
         // create all tickets from ticket array
         ticketArray.forEach(ticket => {
-            createTicket(ticket.ticketCol, ticket.ticketId, ticket.ticketDescription)
+            createTicket(ticket.ticketCol, ticket.ticketDescription, ticket.ticketId)
         })
     })
 })
 
+//local storage
+let ticketsLocalStorage = localStorage.getItem('tickets')
+if(ticketsLocalStorage)
+{
+    ticketArray = JSON.parse(ticketsLocalStorage)
+    ticketArray.forEach(tcket =>{
+        createTicket(tcket.ticketCol, tcket.ticketDescription, tcket.ticketId)
+    })
+}
